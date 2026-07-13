@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="ko" class="light">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>all about GhiRim</title>
+    <!-- Tailwind CSS (CDN) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: '#6366f1',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* 커스텀 애니메이션 & 스타일 */
+        .floating {
+            animation: float 3s ease-in-out infinite;
+        }
+
+        .floating-delay-1 {
+            animation-delay: 0.5s;
+        }
+
+        .floating-delay-2 {
+            animation-delay: 1s;
+        }
+
+        .floating-delay-3 {
+            animation-delay: 1.5s;
+        }
+
+        @keyframes float {
+            0% {
+                transform: translate(-50%, 0px);
+            }
+
+            50% {
+                transform: translate(-50%, -15px);
+            }
+
+            100% {
+                transform: translate(-50%, 0px);
+            }
+        }
+
+        @media (max-width: 768px) {
+            @keyframes float-mobile {
+                0% {
+                    transform: translateY(0px);
+                }
+
+                50% {
+                    transform: translateY(-10px);
+                }
+
+                100% {
+                    transform: translateY(0px);
+                }
+            }
+
+            .floating {
+                animation: float-mobile 3s ease-in-out infinite;
+                transform: none;
+            }
+        }
+
+        /* 눈동자 이동 트랜지션 (이미지 오버레이용) */
+        #memoji-container {
+            --left-eye-x: 41%;
+            --left-eye-y: 35%;
+            --right-eye-x: 59%;
+            --right-eye-y: 35%;
+            --eye-size: 9%;
+            --pupil-size: 4%;
+            --pupil-range: 5;
+        }
+
+        .eye-pupil-img {
+            width: var(--pupil-size);
+            height: var(--pupil-size);
+            transition: transform 0.05s linear;
+        }
+
+        .eye-sclera-img {
+            width: var(--eye-size);
+            height: var(--eye-size);
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.9), 0 0 10px rgba(255, 255, 255, 0.25);
+        }
+
+        /* 도림이 모달 전용 커서 (강아지 발바닥 모양) */
+        .dorim-cursor {
+            cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 512 512"><path fill="%23f43f5e" d="M256 224c-53.02 0-96 42.98-96 96 0 53.02 42.98 96 96 96s96-42.98 96-96c0-53.02-42.98-96-96-96zm-112-64c-35.35 0-64 28.65-64 64 0 35.35 28.65 64 64 64s64-28.65 64-64c0-35.35-28.65-64-64-64zm224 0c-35.35 0-64 28.65-64 64 0 35.35 28.65 64 64 64s64-28.65 64-64c0-35.35-28.65-64-64-64zm-112-160c-35.35 0-64 28.65-64 64 0 35.35 28.65 64 64 64s64-28.65 64-64c0-35.35-28.65-64-64-64z"/></svg>') 16 16, auto;
+        }
+
+        /* 폭죽(Confetti) 스타일 */
+        .confetti {
+            position: fixed;
+            width: 10px;
+            height: 10px;
+            top: -10px;
+            z-index: 1000;
+            pointer-events: none;
+            animation: fall linear forwards;
+        }
+
+        @keyframes fall {
+            to {
+                transform: translateY(100vh) rotate(720deg);
+            }
+        }
+
+        /* 로켓 목표 애니메이션 */
+        .fly-rocket {
+            animation: shoot-rocket 2s ease-in forwards;
+        }
+
+        @keyframes shoot-rocket {
+            0% {
+                transform: translate(0, 0) scale(1);
+            }
+
+            50% {
+                transform: translate(150px, -150px) scale(1.5);
+            }
+
+            100% {
+                transform: translate(500px, -500px) scale(0);
+                opacity: 0;
+            }
+        }
+
+        .emoji-burst {
+            position: fixed;
+            z-index: 220;
+            pointer-events: none;
+            will-change: transform, opacity;
+            animation: emoji-float 1.7s ease-out forwards;
+        }
+
+        .emoji-party-layer {
+            position: fixed;
+            inset: 0;
+            z-index: 230;
+            pointer-events: none;
+            overflow: hidden;
+        }
+
+        @keyframes emoji-float {
+            0% {
+                opacity: 0;
+                transform: translate(-50%, -50%) scale(0.5);
+            }
+
+            10% {
+                opacity: 1;
+            }
+
+            100% {
+                opacity: 0;
+                transform: translate(var(--dx), var(--dy)) scale(1.4) rotate(var(--rotate));
+            }
+        }
+
+        /* 모달 페이드 인 */
+        .modal-enter {
+            animation: fadeIn 0.3s ease-out forwards;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: scale(0.95);
+            }
+
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        /* 스테이지 맵(Stepper) 트랜지션 */
+        .stage-player {
+            transition: left 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+    </style>
+</head>
+
+<body
+    class="bg-blue-50 text-gray-800 dark:bg-gray-900 dark:text-gray-100 transition-colors duration-500 min-h-screen overflow-hidden font-sans relative">
+
+    <!-- 🎯 기림 탐색율 (마리오 스테이지 형식) -->
+    <div
+        class="fixed top-6 left-1/2 -translate-x-1/2 z-50 bg-white/90 dark:bg-gray-800/90 backdrop-blur-md px-6 py-3 rounded-full shadow-lg border border-gray-100 dark:border-gray-700 w-[300px] md:w-[400px]">
+        <div class="flex justify-between items-center relative h-6">
+            <!-- 연결선 (배경) -->
+            <div
+                class="absolute top-1/2 left-4 right-4 h-1 bg-gray-200 dark:bg-gray-700 -translate-y-1/2 rounded-full z-0">
+            </div>
+            <!-- 연결선 (채워짐) -->
+            <div id="stage-line"
+                class="absolute top-1/2 left-4 h-1 bg-indigo-500 -translate-y-1/2 rounded-full z-0 transition-all duration-500 w-0">
+            </div>
+
+            <!-- 각 스테이지 동그라미 (총 5개) -->
+            <div
+                class="stage-dot w-4 h-4 rounded-full bg-indigo-500 border-2 border-white dark:border-gray-800 z-10 relative">
+            </div>
+            <div
+                class="stage-dot w-4 h-4 rounded-full bg-gray-300 dark:bg-gray-600 border-2 border-white dark:border-gray-800 z-10 relative">
+            </div>
+            <div
+                class="stage-dot w-4 h-4 rounded-full bg-gray-300 dark:bg-gray-600 border-2 border-white dark:border-gray-800 z-10 relative">
+            </div>
+            <div
+                class="stage-dot w-4 h-4 rounded-full bg-gray-300 dark:bg-gray-600 border-2 border-white dark:border-gray-800 z-10 relative">
+            </div>
+            <div
+                class="stage-dot w-4 h-4 rounded-full bg-gray-300 dark:bg-gray-600 border-2 border-white dark:border-gray-800 z-10 relative">
+            </div>
+
+            <!-- 플레이어 아이콘 (걸어가는 사람) -->
+            <div id="stage-player" class="stage-player absolute top-1/2 -translate-y-1/2 left-0 text-xl z-20"
+                style="margin-left: -10px;">
+                🚶
+            </div>
+        </div>
+        <div class="text-center mt-1 text-xs font-bold text-indigo-600 dark:text-indigo-400">
+            탐색 진행도 (<span id="stage-count">0</span>/5)
+        </div>
+    </div>
+
+    <!-- 다크모드 토글 -->
+    <div class="fixed top-6 right-6 z-50">
+        <button id="theme-toggle"
+            class="p-3 rounded-full bg-white dark:bg-gray-800 shadow-md hover:scale-110 transition-transform">
+            <span id="theme-icon" class="text-xl">🌙</span>
+        </button>
+    </div>
+
+    <!-- 🌌 메인 영역 (1-2-0 구조) -->
+    <div class="relative w-full h-screen flex flex-col items-center justify-center p-4">
+        <div
+            class="w-full max-w-5xl h-[700px] relative flex flex-col md:block items-center justify-start md:justify-center pt-24 md:pt-0 gap-6 md:gap-0">
+
+            <!-- [2] 중심 영역: 커스텀 미모티콘 (실제 이미지 + 눈동자 오버레이) -->
+            <div
+                class="md:absolute md:top-[55%] md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 z-10 flex flex-col items-center">
+
+                <div id="memoji-container"
+                    class="w-40 h-40 md:w-56 md:h-56 bg-gray-200 dark:bg-gray-800 rounded-full shadow-2xl flex items-center justify-center relative transition-colors duration-500 border-4 border-white dark:border-gray-700 overflow-hidden"
+                    style="--left-eye-x: 40%; --left-eye-y: 33%; --right-eye-x: 60%; --right-eye-y: 33%; --eye-size: 11%; --pupil-size: 4%; --pupil-range: 4;">
+
+                    <!-- 🔥 실제 미모티콘 이미지 (보내주신 alah.jpg 적용) -->
+                    <!-- 파일명 또는 경로를 실제 로컬 폴더에 맞게 수정하세요 -->
+                    <img src="images/me.jpg" alt="나의 미모티콘" class="absolute inset-0 w-full h-full object-cover z-0">
+
+                    <!-- 👁️ 왼쪽 눈 흰자 -->
+                    <div class="eye-sclera-img absolute z-[9] rounded-full bg-white/95 border border-white/80 shadow-sm"
+                        style="top: var(--left-eye-y); left: var(--left-eye-x); transform: translate(-50%, -50%);">
+                    </div>
+
+                    <!-- 👀 왼쪽 눈동자 오버레이 -->
+                    <div class="eye-pupil-img absolute z-10 rounded-full bg-gray-900 border border-gray-800"
+                        style="top: var(--left-eye-y); left: var(--left-eye-x); transform: translate(-50%, -50%);"
+                        id="img-pupil-left"></div>
+
+                    <!-- 👁️ 오른쪽 눈 흰자 -->
+                    <div class="eye-sclera-img absolute z-[9] rounded-full bg-white/95 border border-white/80 shadow-sm"
+                        style="top: var(--right-eye-y); left: var(--right-eye-x); transform: translate(-50%, -50%);">
+                    </div>
+
+                    <!-- 👀 오른쪽 눈동자 오버레이 -->
+                    <div class="eye-pupil-img absolute z-10 rounded-full bg-gray-900 border border-gray-800"
+                        style="top: var(--right-eye-y); left: var(--right-eye-x); transform: translate(-50%, -50%);"
+                        id="img-pupil-right"></div>
+
+                    <!-- 🎉 축하 상태일 때 보여줄 오버레이 (반투명 노란 배경 + 선글라스) -->
+                    <div id="sunglasses"
+                        class="absolute inset-0 z-20 flex items-center justify-center text-8xl hidden bg-transparent transition-transform duration-300"
+                        style="--sunglasses-x: 0px; --sunglasses-y: 0px; --sunglasses-scale: 1; transform: translate(var(--sunglasses-x), var(--sunglasses-y)) scale(var(--sunglasses-scale)); transform-origin: center;">
+                        😎
+                    </div>
+                </div>
+
+                <h1 class="mt-4 text-3xl font-black tracking-tight text-gray-900 dark:text-white">GHI RIM LEE</h1>
+                <p class="text-sm font-medium text-gray-500 dark:text-gray-400 mt-1">나라는 우주를 탐험하는 시간</p>
+            </div>
+
+            <!-- [1] 탐색 영역 (말풍선 메뉴들) -->
+            <div
+                class="w-full grid grid-cols-2 gap-4 md:block md:w-full md:h-full z-20 relative md:static mt-8 md:mt-0 px-4 md:px-0">
+                <button onclick="openModal('modal-portfolio', 'portfolio')"
+                    class="menu-btn floating md:absolute md:top-[15%] md:left-[20%] bg-white dark:bg-gray-800 px-6 py-4 rounded-3xl shadow-lg hover:shadow-2xl transition-all hover:-translate-y-2 border-2 border-transparent hover:border-indigo-400 flex flex-col items-center text-center">
+                    <span class="text-4xl mb-2">💼</span>
+                    <span class="font-bold whitespace-nowrap">포트폴리오</span>
+                </button>
+
+                <button onclick="openModal('modal-goals', 'goals')"
+                    class="menu-btn floating floating-delay-1 md:absolute md:top-[15%] md:left-[50%] bg-white dark:bg-gray-800 px-6 py-4 rounded-3xl shadow-lg hover:shadow-2xl transition-all hover:-translate-y-2 border-2 border-transparent hover:border-blue-400 flex flex-col items-center text-center col-span-2 md:col-span-1 order-last md:order-none">
+                    <span class="text-4xl mb-2">🚀</span>
+                    <span class="font-bold whitespace-nowrap">나의 목표</span>
+                </button>
+
+                <button onclick="openModal('modal-hobbies', 'hobbies')"
+                    class="menu-btn floating floating-delay-2 md:absolute md:top-[15%] md:left-[80%] bg-white dark:bg-gray-800 px-6 py-4 rounded-3xl shadow-lg hover:shadow-2xl transition-all hover:-translate-y-2 border-2 border-transparent hover:border-pink-400 flex flex-col items-center text-center">
+                    <span class="text-4xl mb-2">🎮</span>
+                    <span class="font-bold whitespace-nowrap">취미</span>
+                </button>
+
+                <button onclick="openModal('modal-taste', 'taste')"
+                    class="menu-btn floating floating-delay-3 md:absolute md:top-[55%] md:left-[20%] bg-white dark:bg-gray-800 px-6 py-4 rounded-3xl shadow-lg hover:shadow-2xl transition-all hover:-translate-y-2 border-2 border-transparent hover:border-orange-400 flex flex-col items-center text-center">
+                    <span class="text-4xl mb-2">🍔</span>
+                    <span class="font-bold whitespace-nowrap">맛집 리스트</span>
+                </button>
+
+                <button onclick="openModal('modal-dorim', 'dorim')"
+                    class="menu-btn floating md:absolute md:top-[55%] md:left-[80%] bg-white dark:bg-gray-800 px-6 py-4 rounded-3xl shadow-lg hover:shadow-2xl transition-all hover:-translate-y-2 border-2 border-transparent hover:border-rose-400 flex flex-col items-center text-center">
+                    <span class="text-4xl mb-2">🐶</span>
+                    <span class="font-bold whitespace-nowrap">도림이 소개</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- ==================== 모달 영역 (SPA 콘텐츠 팝업) ==================== -->
+
+    <!-- 1. 포트폴리오 모달 -->
+    <div id="modal-portfolio"
+        class="fixed inset-0 bg-black/50 z-[100] hidden flex items-center justify-center p-4 backdrop-blur-sm">
+        <div
+            class="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-lg max-h-[85vh] overflow-y-auto p-8 shadow-2xl modal-enter relative">
+            <button onclick="closeModal('modal-portfolio')"
+                class="absolute top-4 right-4 text-2xl hover:scale-110 transition-transform">❌</button>
+            <h2 class="text-3xl font-bold mb-6 flex items-center gap-2">💼 포트폴리오</h2>
+
+            <div class="border-l-4 border-indigo-400 ml-3 space-y-8 mt-8">
+                <div class="relative pl-6">
+                    <div
+                        class="absolute -left-[14px] top-1 w-6 h-6 bg-indigo-500 rounded-full border-4 border-white dark:border-gray-800">
+                    </div>
+                    <h3 class="font-bold text-xl text-gray-900 dark:text-white">2026.07 - SSAFY 입과</h3>
+                    <p class="text-gray-600 dark:text-gray-400 mt-1 mb-2">금융권 개발자가 되기 위해 싸피에 지원</p>
+                </div>
+                <div class="relative pl-6">
+                    <div
+                        class="absolute -left-[14px] top-1 w-6 h-6 bg-gray-300 dark:bg-gray-600 rounded-full border-4 border-white dark:border-gray-800">
+                    </div>
+                    <h3 class="font-bold text-xl text-gray-900 dark:text-white">2026.03 - 2026.06 - KB IT's Your Life 부트캠프</h3>
+                    <p class="text-gray-600 dark:text-gray-400 mt-1">KB IT's Your Life 부트캠프 참여</p>
+                </div>
+                <div class="relative pl-6">
+                    <div
+                        class="absolute -left-[14px] top-1 w-6 h-6 bg-gray-300 dark:bg-gray-600 rounded-full border-4 border-white dark:border-gray-800">
+                    </div>
+                    <h3 class="font-bold text-xl text-gray-900 dark:text-white">2025.04 - 2026.02 - 어반리즘하우스 근무</h3>
+                    <p class="text-gray-600 dark:text-gray-400 mt-1">어반리즘하우스에서 관광 데이터 분석 업무 진행</p>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. 취미 모달 -->
+    <div id="modal-hobbies"
+        class="fixed inset-0 bg-black/50 z-[100] hidden flex items-center justify-center p-4 backdrop-blur-sm">
+        <div
+            class="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-2xl max-h-[85vh] overflow-y-auto p-8 shadow-2xl modal-enter relative">
+            <button onclick="closeModal('modal-hobbies')"
+                class="absolute top-4 right-4 text-2xl hover:scale-110 transition-transform">❌</button>
+            <h2 class="text-3xl font-bold mb-6 flex items-center gap-2">🎨 내가 좋아하는 것들</h2>
+
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-6">
+                <div
+                    class="bg-gray-50 dark:bg-gray-700 p-3 pb-8 rounded shadow-md transform rotate-2 transition-transform hover:scale-105 border border-gray-200 dark:border-gray-600">
+                    <div
+                        class="bg-gray-200 dark:bg-gray-600 w-full aspect-square flex items-center justify-center overflow-hidden rounded-sm">
+                        <img src="images/f1.png" alt="F1 보기" class="w-full h-full object-cover"></span>
+                    </div>
+                    <p class="text-center font-bold mt-4 font-serif text-gray-800 dark:text-gray-100">🏎️🏁 F1 보기</p>
+
+                </div>
+                <div
+                    class="bg-gray-50 dark:bg-gray-700 p-3 pb-8 rounded shadow-md transform -rotate-3 transition-transform hover:scale-105 border border-gray-200 dark:border-gray-600">
+                    <div
+                        class="bg-gray-200 dark:bg-gray-600 w-full aspect-square flex items-center justify-center overflow-hidden rounded-sm">
+                        <img src="images/cooking.png" alt="요리" class="w-full h-full object-cover"></span>
+                    </div>
+                    <p class="text-center font-bold mt-4 font-serif text-gray-800 dark:text-gray-100"> 🍳 요리하기</p>
+                </div>
+                <div
+                    class="bg-gray-50 dark:bg-gray-700 p-3 pb-8 rounded shadow-md transform -rotate-3 transition-transform hover:scale-105 border border-gray-200 dark:border-gray-600">
+                    <div
+                        class="bg-gray-200 dark:bg-gray-600 w-full aspect-square flex items-center justify-center overflow-hidden rounded-sm">
+                        <img src="images/baseball.png" alt="야구 보기" class="w-full h-full object-cover"></span>
+                    </div>
+                    <p class="text-center font-bold mt-4 font-serif text-gray-800 dark:text-gray-100">⚾ 야구 관람</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. 맛집 리스트 모달 -->
+    <div id="modal-taste"
+        class="fixed inset-0 bg-black/50 z-[100] hidden flex items-center justify-center p-4 backdrop-blur-sm">
+        <div
+            class="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-md max-h-[85vh] overflow-y-auto p-8 shadow-2xl modal-enter relative">
+            <button onclick="closeModal('modal-taste')"
+                class="absolute top-4 right-4 text-2xl hover:scale-110 transition-transform">❌</button>
+            <h2 class="text-3xl font-bold mb-6 flex items-center gap-2">🍔 나만의 맛집 지도</h2>
+            <p class="text-sm text-gray-500 mb-4">클릭하시면 네이버 지도로 연결됩니다!</p>
+
+            <div class="flex flex-col gap-4">
+                <a href="https://naver.me/5l27rzYF" target="_blank"
+                    class="flex items-center gap-4 p-4 rounded-xl bg-orange-50 dark:bg-gray-700 hover:bg-orange-100 dark:hover:bg-gray-600 transition-colors border border-orange-100 dark:border-gray-600">
+                    <div
+                        class="w-16 h-16 bg-white dark:bg-gray-800 rounded-lg flex items-center justify-center text-3xl shadow-sm">
+                        🧋</div>
+                    <div>
+                        <h3 class="font-bold text-lg">밀크티 맛집</h3>
+                        <p class="text-sm text-gray-600 dark:text-gray-400">차지티를 아시나요?</p>
+                    </div>
+                </a>
+            </div>
+            <div class="flex flex-col gap-4">
+                <a href="https://naver.me/xY4sO6mN" target="_blank"
+                    class="flex items-center gap-4 p-4 rounded-xl bg-orange-50 dark:bg-gray-700 hover:bg-orange-100 dark:hover:bg-gray-600 transition-colors border border-orange-100 dark:border-gray-600">
+                    <div
+                        class="w-16 h-16 bg-white dark:bg-gray-800 rounded-lg flex items-center justify-center text-3xl shadow-sm">
+                        🍜</div>
+                    <div>
+                        <h3 class="font-bold text-lg">우동 맛집</h3>
+                        <p class="text-sm text-gray-600 dark:text-gray-400">강남역에서 가장 맛있는 우동집</p>
+                    </div>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. 도림이 소개 모달 -->
+    <div id="modal-dorim"
+        class="fixed inset-0 bg-black/50 z-[100] hidden flex items-center justify-center p-4 backdrop-blur-sm dorim-cursor">
+        <div
+            class="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-2xl max-h-[85vh] overflow-y-auto p-8 shadow-2xl modal-enter relative dorim-cursor border-4 border-rose-200">
+            <button onclick="closeModal('modal-dorim')"
+                class="absolute top-4 right-4 text-2xl hover:scale-110 transition-transform z-10">❌</button>
+            <h2 class="text-3xl font-bold mb-2 flex items-center gap-2">🐾 우리집 막내, 도림이</h2>
+            <p class="text-rose-500 font-bold mb-6 text-sm">마우스 커서를 확인해보세요!</p>
+
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <div
+                    class="col-span-2 md:col-span-3 h-56 bg-gray-100 dark:bg-gray-700 rounded-xl overflow-hidden relative border border-gray-200 dark:border-gray-600 group">
+                    <div
+                        class="absolute inset-0 flex items-center justify-center text-gray-400 font-bold group-hover:scale-110 transition-transform">
+                        <img src="images/dorim1.png" alt="도림이" class="w-full h-full object-cover">
+                    </div>
+                </div>
+                <div
+                    class="h-32 bg-gray-100 dark:bg-gray-700 rounded-xl overflow-hidden relative border border-gray-200 dark:border-gray-600">
+                    <div class="absolute inset-0 flex items-center justify-center text-sm text-gray-400">
+                        <img src="images/dorim2.png" alt="도림이" class="w-full h-full object-cover">
+                    </div>
+                </div>
+                <div
+                    class="h-32 bg-gray-100 dark:bg-gray-700 rounded-xl overflow-hidden relative border border-gray-200 dark:border-gray-600">
+                    <div class="absolute inset-0 flex items-center justify-center text-sm text-gray-400">
+                        <img src="images/dorim3.png" alt="도림이" class="w-full h-full object-cover">
+                    </div>
+                </div>
+                <div
+                    class="h-32 bg-gray-100 dark:bg-gray-700 rounded-xl overflow-hidden relative border border-gray-200 dark:border-gray-600 col-span-2 md:col-span-1">
+                    <div class="absolute inset-0 flex items-center justify-center text-sm text-gray-400">
+                        <img src="images/dorim4.png" alt="도림이" class="w-full h-full object-cover">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 5. 목표 모달 -->
+    <div id="modal-goals"
+        class="fixed inset-0 bg-black/50 z-[100] hidden flex items-center justify-center p-4 backdrop-blur-sm">
+        <div
+            class="bg-white text-gray-800 dark:bg-slate-900 dark:text-white rounded-2xl w-full max-w-lg max-h-[85vh] overflow-y-auto p-8 shadow-2xl modal-enter relative overflow-hidden border border-slate-200 dark:border-slate-700">
+            <button onclick="closeModal('modal-goals')"
+                class="absolute top-4 right-4 text-2xl hover:scale-110 transition-transform z-10">❌</button>
+            <h2 class="text-3xl font-bold mb-6 flex items-center gap-2 text-emerald-500 dark:text-emerald-400">✨ 나의 비전</h2>
+
+            <div class="relative z-10 space-y-6">
+                <div class="w-full h-40 bg-slate-100 dark:bg-white rounded-xl overflow-hidden relative border border-slate-200 dark:border-slate-600">
+                    <img src="images/mg.jpg" alt="새마을금고"
+                        class="absolute inset-0 w-full h-full object-contain object-center">
+                </div>
+
+                <div class="bg-slate-50 dark:bg-slate-800/50 p-6 rounded-xl border border-slate-200 dark:border-slate-700">
+                    <p class="text-lg leading-relaxed">
+                        나의 목표<br>
+                        <strong class="text-emerald-500 dark:text-emerald-400 text-xl block mt-2">중앙회, 시중은행, 금융권</strong>
+                        코어뱅킹 시스템에 기여하는 개발자
+                    </p>
+                </div>
+
+                <button id="support-button" type="button"
+                    class="group relative w-full overflow-hidden rounded-2xl border border-emerald-300/30 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 px-5 py-4 font-bold text-lg text-white shadow-xl shadow-emerald-900/40 transition-transform duration-200 hover:-translate-y-0.5 hover:shadow-2xl active:translate-y-0 active:scale-[0.99] touch-manipulation select-none">
+                    <span
+                        class="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.35),transparent_55%)]"></span>
+                    <span class="relative flex items-center justify-between gap-3">
+                        <span class="flex items-center gap-3">
+                            <span
+                                class="flex h-10 w-10 items-center justify-center rounded-full bg-white/20 text-2xl shadow-inner">💖</span>
+                            <span>목표 응원하기</span>
+                        </span>
+                        <span
+                            class="flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-sm font-semibold backdrop-blur-sm">
+                            <span>눌림</span>
+                            <span id="support-count" class="min-w-8 text-center text-base">0</span>
+                        </span>
+                    </span>
+                    <span id="heart-emoji"
+                        class="pointer-events-none absolute right-4 top-1/2 inline-block -translate-y-1/2 text-2xl">💕</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 완료 축하 토스트 메시지 -->
+    <div id="celebration-toast"
+        class="fixed top-24 left-1/2 -translate-x-1/2 bg-green-500 text-white px-8 py-4 rounded-full font-bold shadow-2xl z-[200] transform -translate-y-20 opacity-0 transition-all duration-500 flex items-center gap-3">
+        <span class="text-2xl">🎉</span> 모든 페이지를 탐색 완료하셨습니다!
+    </div>
+
+
+    <script>
+        window.onerror = function (message, source, lineno, colno, error) {
+            console.error("오류 발생:", message, "해결방법: 코드를 점검하거나 브라우저 콘솔을 확인해주세요.");
+        };
+
+        /* -----------------------------------------------------------
+           1. 이미지 기반 눈동자 트래킹 로직
+        ----------------------------------------------------------- */
+        const eyeConfig = {
+            leftEyeX: 40,
+            leftEyeY: 33,
+            rightEyeX: 60,
+            rightEyeY: 33,
+            eyeSize: 11,
+            pupilSize: 4,
+            pupilRange: 4,
+        };
+
+        const memojiContainer = document.getElementById('memoji-container');
+        const imgPupils = document.querySelectorAll('.eye-pupil-img');
+        let isCelebrated = false;
+
+        if (memojiContainer) {
+            memojiContainer.style.setProperty('--left-eye-x', `${eyeConfig.leftEyeX}%`);
+            memojiContainer.style.setProperty('--left-eye-y', `${eyeConfig.leftEyeY}%`);
+            memojiContainer.style.setProperty('--right-eye-x', `${eyeConfig.rightEyeX}%`);
+            memojiContainer.style.setProperty('--right-eye-y', `${eyeConfig.rightEyeY}%`);
+            memojiContainer.style.setProperty('--eye-size', `${eyeConfig.eyeSize}%`);
+            memojiContainer.style.setProperty('--pupil-size', `${eyeConfig.pupilSize}%`);
+            memojiContainer.style.setProperty('--pupil-range', `${eyeConfig.pupilRange}`);
+        }
+
+        document.addEventListener('mousemove', (e) => {
+            if (isCelebrated) return; // 축하 상태일 경우 눈동자 정지
+
+            imgPupils.forEach(pupil => {
+                // 눈동자의 현재 화면상 위치 구하기
+                const rect = pupil.getBoundingClientRect();
+                const pupilCenterX = rect.left + rect.width / 2;
+                const pupilCenterY = rect.top + rect.height / 2;
+
+                // 마우스와 눈동자 중심의 거리 및 각도 계산
+                const dx = e.clientX - pupilCenterX;
+                const dy = e.clientY - pupilCenterY;
+                const angle = Math.atan2(dy, dx);
+
+                // 눈동자가 움직일 수 있는 최대 반경 제한 (너무 많이 벗어나지 않도록)
+                const distance = Math.min(eyeConfig.pupilRange, Math.hypot(dx, dy) / 20);
+
+                const moveX = Math.cos(angle) * distance;
+                const moveY = Math.sin(angle) * distance;
+
+                // 기준 속성값인 translate(-50%, -50%)를 유지하며 좌표 이동
+                pupil.style.transform = `translate(calc(-50% + ${moveX}px), calc(-50% + ${moveY}px))`;
+            });
+        });
+
+        /* -----------------------------------------------------------
+           2. SPA 모달 & 탐색률 (마리오 스테이지 형식)
+        ----------------------------------------------------------- */
+        const visitedSections = new Set();
+        const totalSections = 5;
+
+        function openModal(modalId, sectionKey) {
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.classList.remove('hidden');
+
+                // 새로운 섹션 방문 시
+                if (!visitedSections.has(sectionKey)) {
+                    visitedSections.add(sectionKey);
+                    updateStage();
+                }
+            }
+        }
+
+        // 모달 닫기
+        function closeModal(modalId) {
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.classList.add('hidden');
+
+                // 모달이 닫히고, 진행도가 5/5 이며, 아직 축하 이벤트가 안 일어났다면
+                if (visitedSections.size === totalSections && !isCelebrated) {
+                    isCelebrated = true; // 플래그 설정
+                    setTimeout(() => {
+                        triggerCelebration();
+                    }, 300); // 모달이 닫히는 시간 살짝 기다림
+                }
+            }
+        }
+
+        function updateStage() {
+            const count = visitedSections.size;
+            document.getElementById('stage-count').innerText = count;
+
+            const dots = document.querySelectorAll('.stage-dot');
+            const stageTrack = document.querySelector('.flex.justify-between');
+            const line = document.getElementById('stage-line');
+            const player = document.getElementById('stage-player');
+
+            dots.forEach((dot, index) => {
+                if (index < count) {
+                    dot.classList.remove('bg-gray-300', 'dark:bg-gray-600');
+                    dot.classList.add('bg-indigo-500');
+                }
+            });
+
+            if (stageTrack) {
+                const trackWidth = stageTrack.offsetWidth - 32;
+                const segmentWidth = trackWidth / (totalSections - 1);
+                const playerCenter = count === 0 ? 16 : 16 + Math.min(count - 1, totalSections - 1) * segmentWidth;
+
+                line.style.width = `${Math.max(0, playerCenter - 16)}px`;
+                player.style.left = `${playerCenter - 10}px`;
+            }
+        }
+
+        function triggerCelebration() {
+            // 1. 축하 토스트 메시지
+            const toast = document.getElementById('celebration-toast');
+            toast.classList.remove('-translate-y-20', 'opacity-0');
+            toast.classList.add('translate-y-0', 'opacity-100');
+            setTimeout(() => {
+                toast.classList.remove('translate-y-0', 'opacity-100');
+                toast.classList.add('-translate-y-20', 'opacity-0');
+            }, 4000);
+
+            // 2. 미모티콘 표정 변화 (선글라스 오버레이 표시)
+            const sunglasses = document.getElementById('sunglasses');
+            const memojiContainer = document.getElementById('memoji-container');
+
+            sunglasses.classList.remove('hidden'); // 선글라스 등장
+
+            // 컨테이너 테두리 효과
+            memojiContainer.classList.remove('border-white', 'dark:border-gray-700');
+            memojiContainer.classList.add('border-yellow-400');
+            memojiContainer.classList.add('scale-105'); // 살짝 커짐
+        }
+
+        const sunglassesOverlay = document.getElementById('sunglasses');
+        const sunglassesX = document.getElementById('sunglasses-x');
+        const sunglassesY = document.getElementById('sunglasses-y');
+        const sunglassesScale = document.getElementById('sunglasses-scale');
+        const sunglassesXValue = document.getElementById('sunglasses-x-value');
+        const sunglassesYValue = document.getElementById('sunglasses-y-value');
+        const sunglassesScaleValue = document.getElementById('sunglasses-scale-value');
+        const sunglassesReset = document.getElementById('sunglasses-reset');
+
+        function applySunglassesTransform() {
+            if (!sunglassesOverlay) {
+                return;
+            }
+
+            const x = Number(sunglassesX?.value || 0);
+            const y = Number(sunglassesY?.value || 0);
+            const scale = Number(sunglassesScale?.value || 100) / 100;
+
+            sunglassesOverlay.style.setProperty('--sunglasses-x', `${x}px`);
+            sunglassesOverlay.style.setProperty('--sunglasses-y', `${y}px`);
+            sunglassesOverlay.style.setProperty('--sunglasses-scale', `${scale}`);
+
+            if (sunglassesXValue) {
+                sunglassesXValue.innerText = `${x}px`;
+            }
+
+            if (sunglassesYValue) {
+                sunglassesYValue.innerText = `${y}px`;
+            }
+
+            if (sunglassesScaleValue) {
+                sunglassesScaleValue.innerText = `${Math.round(scale * 100)}%`;
+            }
+        }
+
+        if (sunglassesX && sunglassesY && sunglassesScale) {
+            applySunglassesTransform();
+            sunglassesX.addEventListener('input', applySunglassesTransform);
+            sunglassesY.addEventListener('input', applySunglassesTransform);
+            sunglassesScale.addEventListener('input', applySunglassesTransform);
+        }
+
+        if (sunglassesReset) {
+            sunglassesReset.addEventListener('click', () => {
+                if (sunglassesX) sunglassesX.value = '0';
+                if (sunglassesY) sunglassesY.value = '0';
+                if (sunglassesScale) sunglassesScale.value = '100';
+                applySunglassesTransform();
+            });
+        }
+
+        function triggerConfetti(isBig = false) {
+            const colors = ['#f43f5e', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#f97316', '#22c55e'];
+            const total = isBig ? 320 : 150;
+            const sizeMin = isBig ? 10 : 8;
+            const sizeMax = isBig ? 20 : 12;
+            for (let i = 0; i < total; i++) {
+                const confetti = document.createElement('div');
+                confetti.classList.add('confetti');
+                confetti.style.left = Math.random() * 100 + 'vw';
+                confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                confetti.style.width = `${sizeMin + Math.random() * (sizeMax - sizeMin)}px`;
+                confetti.style.height = `${sizeMin + Math.random() * (sizeMax - sizeMin)}px`;
+
+                confetti.style.animationDuration = (isBig ? Math.random() * 2.2 + 2.2 : Math.random() * 3 + 2) + 's';
+                confetti.style.opacity = Math.random();
+                confetti.style.transform = `scale(${Math.random()})`;
+
+                document.body.appendChild(confetti);
+                setTimeout(() => confetti.remove(), isBig ? 6500 : 5000);
+            }
+        }
+
+        function launchEmojiParty(intensity = 'small') {
+            const partyEmojis = ['💖', '💕', '💘', '✨', '🎉', '🚀', '🌟', '💚', '🫶', '🔥', '💫', '💗', '🥳', '🎊', '⭐', '💥'];
+            const partyLayer = document.createElement('div');
+            partyLayer.className = 'emoji-party-layer';
+            document.body.appendChild(partyLayer);
+
+            const isFull = intensity === 'full';
+            const isMega = intensity === 'mega' || isFull;
+            const total = isFull ? 360 : isMega ? 180 : 80;
+            const baseSize = isFull ? 30 : isMega ? 24 : 18;
+
+            for (let i = 0; i < total; i++) {
+                const partyEmoji = document.createElement('div');
+                partyEmoji.className = 'absolute select-none leading-none';
+                partyEmoji.textContent = partyEmojis[Math.floor(Math.random() * partyEmojis.length)];
+
+                const left = Math.random() * 100;
+                const top = Math.random() * 100;
+                const driftX = (Math.random() - 0.5) * (isFull ? 520 : isMega ? 320 : 200);
+                const driftY = (Math.random() - 0.65) * (isFull ? 420 : isMega ? 280 : 180);
+                const spin = Math.floor(Math.random() * 1080 - 540);
+                const size = baseSize + Math.random() * (isFull ? 42 : isMega ? 28 : 18);
+
+                partyEmoji.style.left = `${left}vw`;
+                partyEmoji.style.top = `${top}vh`;
+                partyEmoji.style.fontSize = `${size}px`;
+                partyEmoji.style.opacity = '0';
+                partyEmoji.style.transform = 'translate(-50%, -50%) scale(0.4)';
+                partyEmoji.style.transition = 'transform 1.3s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.25s ease-out';
+                partyEmoji.style.filter = isFull ? 'drop-shadow(0 0 12px rgba(255,255,255,0.45))' : 'none';
+
+                partyLayer.appendChild(partyEmoji);
+
+                requestAnimationFrame(() => {
+                    partyEmoji.style.opacity = '1';
+                    partyEmoji.style.transform = `translate(calc(-50% + ${driftX}px), calc(-50% + ${driftY}px)) scale(${isFull ? 3 : isMega ? 2.2 : 1.5}) rotate(${spin}deg)`;
+                });
+
+                setTimeout(() => partyEmoji.remove(), isFull ? 3200 : isMega ? 2600 : 1900);
+            }
+
+            setTimeout(() => partyLayer.remove(), isFull ? 3400 : isMega ? 2800 : 2000);
+        }
+
+        /* -----------------------------------------------------------
+           3. 응원 버튼 인터랙션
+        ----------------------------------------------------------- */
+        const supportButton = document.getElementById('support-button');
+        const supportCount = document.getElementById('support-count');
+        const supportEmoji = document.getElementById('heart-emoji');
+        const supportEmojis = ['💖', '💕', '💘', '✨', '🎉', '🚀', '🌟', '💚', '🫶', '🔥', '💫', '💗'];
+        let supportPressCount = 0;
+        let supportHoldTimer = null;
+        let supportHoldInterval = null;
+        let supportHolding = false;
+        let supportMilestones = {
+            10: false,
+            100: false,
+        };
+        let supportPointerId = null;
+
+        function updateSupportCount() {
+            supportCount.innerText = supportPressCount;
+        }
+
+        function spawnSupportEmojis(button, burstSize = 20, bigBurst = false) {
+            const emojiList = ['💖', '💕', '💘', '✨', '🎉', '🚀', '🌟', '💚', '🫶', '🔥'];
+            const buttonRect = button.getBoundingClientRect();
+            const startX = buttonRect.left + buttonRect.width / 2;
+            const startY = buttonRect.top + buttonRect.height / 2;
+
+            if (supportEmoji) {
+                supportEmoji.textContent = supportEmojis[Math.floor(Math.random() * supportEmojis.length)];
+                supportEmoji.classList.remove('fly-rocket');
+                void supportEmoji.offsetWidth;
+                supportEmoji.classList.add('fly-rocket');
+            }
+
+            for (let i = 0; i < burstSize; i++) {
+                const emoji = document.createElement('div');
+                emoji.className = `emoji-burst ${bigBurst ? 'text-3xl md:text-4xl' : 'text-2xl md:text-3xl'}`;
+                emoji.textContent = emojiList[Math.floor(Math.random() * emojiList.length)];
+
+                const angle = Math.random() * Math.PI * 2;
+                const distance = (bigBurst ? 90 : 40) + Math.random() * (bigBurst ? 220 : 140);
+                const dx = Math.cos(angle) * distance;
+                const dy = Math.sin(angle) * distance - (90 + Math.random() * (bigBurst ? 160 : 80));
+                const rotate = `${Math.floor(Math.random() * 900 - 450)}deg`;
+
+                emoji.style.left = `${startX}px`;
+                emoji.style.top = `${startY}px`;
+                emoji.style.setProperty('--dx', `${dx}px`);
+                emoji.style.setProperty('--dy', `${dy}px`);
+                emoji.style.setProperty('--rotate', rotate);
+                emoji.style.animationDelay = `${Math.random() * 0.15}s`;
+
+                document.body.appendChild(emoji);
+                setTimeout(() => emoji.remove(), bigBurst ? 2600 : 2000);
+            }
+        }
+
+        function registerSupport(button, options = {}) {
+            const isBig = options.isBig ?? false;
+            const burstSize = options.burstSize ?? (isBig ? 34 : 20);
+
+            supportPressCount += 1;
+            updateSupportCount();
+            spawnSupportEmojis(button, burstSize, isBig);
+
+            if (!supportMilestones[10] && supportPressCount >= 10) {
+                supportMilestones[10] = true;
+                triggerConfetti(true);
+                launchEmojiParty('small');
+            }
+
+            if (!supportMilestones[100] && supportPressCount >= 100) {
+                supportMilestones[100] = true;
+                triggerConfetti(true);
+                launchEmojiParty('mega');
+            }
+        }
+
+        function startSupportHold(event) {
+            if (event.button !== undefined && event.button !== 0) return;
+
+            event.preventDefault();
+
+            if (supportButton && typeof supportButton.setPointerCapture === 'function' && event.pointerId !== undefined) {
+                supportPointerId = event.pointerId;
+                supportButton.setPointerCapture(event.pointerId);
+            }
+
+            supportHolding = true;
+            registerSupport(event.currentTarget, { burstSize: 28 });
+
+            supportHoldInterval = setInterval(() => {
+                registerSupport(event.currentTarget, { burstSize: 24 });
+            }, 45);
+        }
+
+        function stopSupportHold() {
+            if (supportHoldTimer) {
+                clearTimeout(supportHoldTimer);
+                supportHoldTimer = null;
+            }
+
+            if (supportHoldInterval) {
+                clearInterval(supportHoldInterval);
+                supportHoldInterval = null;
+            }
+
+            if (supportButton && supportPointerId !== null && typeof supportButton.releasePointerCapture === 'function') {
+                try {
+                    supportButton.releasePointerCapture(supportPointerId);
+                } catch (error) {
+                    // pointer capture may already be gone; ignore
+                }
+            }
+
+            supportPointerId = null;
+            supportHolding = false;
+        }
+
+        if (supportButton) {
+            updateSupportCount();
+            supportButton.addEventListener('pointerdown', startSupportHold);
+            supportButton.addEventListener('pointerup', stopSupportHold);
+            supportButton.addEventListener('pointercancel', stopSupportHold);
+        }
+
+        /* -----------------------------------------------------------
+           4. 다크모드
+        ----------------------------------------------------------- */
+        const themeToggleBtn = document.getElementById('theme-toggle');
+        const themeIcon = document.getElementById('theme-icon');
+        const htmlElement = document.documentElement;
+
+        themeToggleBtn.addEventListener('click', () => {
+            htmlElement.classList.toggle('dark');
+            if (htmlElement.classList.contains('dark')) {
+                themeIcon.innerText = '☀️';
+            } else {
+                themeIcon.innerText = '🌙';
+            }
+        });
+    </script>
+</body>
+
+</html>
